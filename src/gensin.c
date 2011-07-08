@@ -3,7 +3,7 @@
 #include <sndfile.h>
 #include <math.h>
 
-#define FILE_NAME "out.pcm"
+#define FILE_NAME "in.pcm"
 
 int main(int argc, char *argv[])
 {
