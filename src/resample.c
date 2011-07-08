@@ -69,19 +69,32 @@ if ( fOut == NULL ) {
 inv_N = 1./(float)BUFFER_SIZE;
 
 do {
-	/* Read a sample */
+	/* Try to read a sample */
 	r=sf_read_double(sfIn, &(data[i][0]), 1);
-	samples_cnt++;
-	/* Set the imaginary part to 0 */
-	data[i][1]=0.0;
+
+	/* Sample read */
+	if (r>0) {
+		samples_cnt++;
+		/* Set the imaginary part to 0 */
+		data[i][1]=0.0;
 #if DEBUG
-	fprintf(fIn, "[ %f ][ %f ]\n", data[i][0], data[i][1]);
+		fprintf(fIn, "[ %f ][ %f ]\n", data[i][0], data[i][1]);
 #endif
-	/* Iterate block counter */
-	i++;
+		/* Iterate samples/block counter */
+		i++;
+	}
+
+	/* Last sample read */
+	if ((r==0) && (i>0)) {
+		/* Zero padding */
+		for(j=0;j<BUFFER_SIZE-i;j++) {
+			data[j+i][0]=0;
+			data[j+i][1]=0;
+		}
+	}
 
 	/* Data block read */
-	if(i==BUFFER_SIZE) 
+	if ((i==BUFFER_SIZE) || (r==0))
 	{
 		block_cnt++;
 		printf("Block read...\n");
@@ -93,7 +106,7 @@ do {
 		fftw_execute(plan_backward);
 
 		/* Normalization */
-		for(j=0;j<BUFFER_SIZE;j++) {
+		for(j=0;j<i;j++) {
 			ifft_result[j][0]=inv_N*ifft_result[j][0];
 			ifft_result[j][1]=0;
 #if DEBUG
@@ -102,7 +115,7 @@ do {
 		}
 
 		/* Write samples */
-		for(j=0;j<BUFFER_SIZE;j++) {
+		for(j=0;j<i;j++) {
 			sf_write_double(sfOut, &(ifft_result[j][0]), 1);
 		}
 
@@ -112,19 +125,6 @@ do {
 } while(r);
 
 printf("Done: samples=%d blocks=%d\n", samples_cnt, block_cnt);
-
-/* Last samples */
-/* Zero padding */
-for(j=0;j<BUFFER_SIZE-i;j++) {
-	data[j+i][0]=0;
-	data[j+i][1]=0;
-}
-fftw_execute(plan_forward);
-fftw_execute(plan_backward);
-for(j=0;j<i;j++) {
-	ifft_result[j][0]=inv_N*ifft_result[j][0];
-	sf_write_double(sfOut, &(ifft_result[j][0]), 1);
-}
 
 #if DEBUG
 fclose(fIn);
