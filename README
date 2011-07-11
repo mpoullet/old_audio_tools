@@ -1,0 +1,4 @@
+Audio Tools
+
+gensin: generate a pure tone, stored in raw PCM format
+fftw_demo_complex: FFTW demo, using complex numbers
