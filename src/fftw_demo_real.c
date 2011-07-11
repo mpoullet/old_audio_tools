@@ -3,6 +3,7 @@
 #include <fftw3.h>
 
 #define BLOCK_LEN 4096
+#define COMPLEX_BLOCK_LEN ((BLOCK_LEN+1)/2+1)
 
 #define IN_FILE "in.pcm"
 #define OUT_FILE "out.pcm"
@@ -30,15 +31,21 @@ infos.format=SF_FORMAT_RAW | SF_FORMAT_PCM_16;
 infos.channels=1;
 infos.samplerate=44100;
 
-fftw_complex *data, *fft_result, *ifft_result;
+/* Input: real data */
+double *data;
+/* After FFT: complex data */
+fftw_complex *fft_result;
+/* Output: real data */
+double *ifft_result;
+
 fftw_plan plan_forward, plan_backward;
 
-data        = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*BLOCK_LEN);
-fft_result  = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*BLOCK_LEN*2);
-ifft_result = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*BLOCK_LEN);
+data        = (double*)fftw_malloc(sizeof(double)*BLOCK_LEN);
+fft_result  = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*COMPLEX_BLOCK_LEN);
+ifft_result = (double*)fftw_malloc(sizeof(double)*BLOCK_LEN);
 
-plan_forward = fftw_plan_dft_1d(BLOCK_LEN, data, fft_result, FFTW_FORWARD, FFTW_ESTIMATE);
-plan_backward = fftw_plan_dft_1d(BLOCK_LEN, fft_result, ifft_result, FFTW_BACKWARD, FFTW_ESTIMATE);
+plan_forward = fftw_plan_dft_r2c_1d(BLOCK_LEN, data, fft_result, FFTW_ESTIMATE);
+plan_backward = fftw_plan_dft_c2r_1d(BLOCK_LEN, fft_result, ifft_result, FFTW_ESTIMATE);
 
 sfIn = sf_open(IN_FILE, SFM_READ, &infos);
 if ( sfIn==NULL ) {
@@ -70,26 +77,24 @@ inv_N = 1./(float)BLOCK_LEN;
 
 do {
 	/* Try to read a sample */
-	r=sf_read_double(sfIn, &(data[i][0]), 1);
+	r=sf_read_double(sfIn, &(data[i]), 1);
 
 	/* Sample read */
 	if (r>0) {
+		/* Iterate Samples counter */
 		samples_cnt++;
-		/* Set the imaginary part to 0 */
-		data[i][1]=0.0;
-#if DEBUG
-		fprintf(fIn, "[ %f ][ %f ]\n", data[i][0], data[i][1]);
-#endif
 		/* Iterate samples/block counter */
 		i++;
+#if DEBUG
+		fprintf(fIn, "[ %f ]\n", data[i]);
+#endif
 	}
 
 	/* Last sample read */
 	if ((r==0) && (i>0)) {
 		/* Zero padding */
 		for(j=0;j<BLOCK_LEN-i;j++) {
-			data[j+i][0]=0;
-			data[j+i][1]=0;
+			data[j+i]=0;
 		}
 	}
 
@@ -107,16 +112,15 @@ do {
 
 		/* Normalization */
 		for(j=0;j<i;j++) {
-			ifft_result[j][0]=inv_N*ifft_result[j][0];
-			ifft_result[j][1]=0;
+			ifft_result[j]=inv_N*ifft_result[j];
 #if DEBUG
-			fprintf(fOut, "[ %f ][ %f ]\n", ifft_result[j][0], ifft_result[j][1]);
+			fprintf(fOut, "[ %f ]\n", ifft_result[j]);
 #endif
 		}
 
 		/* Write samples */
 		for(j=0;j<i;j++) {
-			sf_write_double(sfOut, &(ifft_result[j][0]), 1);
+			sf_write_double(sfOut, &(ifft_result[j]), 1);
 		}
 
 		/* Reset block counter */
