@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
 {
         int i;
 
-        int size;
+        int samples_cnt;
         float *samples;
 
         SNDFILE *sndfile;
@@ -21,15 +21,15 @@ int main(int argc, char *argv[])
         
         /* 10 s */
         int duration=10;
-        size=infos.samplerate*duration;
-        samples=malloc(size*sizeof(float));
+        samples_cnt=infos.samplerate*duration;
+        samples=malloc(samples_cnt*sizeof(float));
 
-        for(i=0;i<size;i++) {
+        for(i=0;i<samples_cnt;i++) {
                 samples[i]=sin(2*M_PI*440*(float)(i)*1/infos.samplerate);
         }
 
         sndfile = sf_open(FILE_NAME, SFM_WRITE, &infos);
-        sf_write_float(sndfile, &samples[0], size);
+        sf_write_float(sndfile, &samples[0], samples_cnt);
 
         free(samples);
         sf_close(sndfile);
