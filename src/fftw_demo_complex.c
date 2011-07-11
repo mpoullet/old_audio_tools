@@ -17,6 +17,7 @@ int main(int argc, char *argv[])
 {
 unsigned int r=0, i=0, j=0;
 unsigned int block_cnt=0, samples_cnt=0;
+unsigned int padding=0;
 float inv_N;
 
 #if DEBUG
@@ -34,7 +35,7 @@ fftw_complex *data, *fft_result, *ifft_result;
 fftw_plan plan_forward, plan_backward;
 
 data        = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*BLOCK_LEN);
-fft_result  = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*BLOCK_LEN);
+fft_result  = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*BLOCK_LEN*2);
 ifft_result = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*BLOCK_LEN);
 
 plan_forward = fftw_plan_dft_1d(BLOCK_LEN, data, fft_result, FFTW_FORWARD, FFTW_ESTIMATE);
@@ -74,27 +75,30 @@ do {
 
 	/* Sample read */
 	if (r>0) {
-		samples_cnt++;
 		/* Set the imaginary part to 0 */
 		data[i][1]=0.0;
+		/* Iterate Samples counter */
+		samples_cnt++;
+		/* Iterate samples/block counter */
+		i++;
 #if DEBUG
 		fprintf(fIn, "[ %f ][ %f ]\n", data[i][0], data[i][1]);
 #endif
-		/* Iterate samples/block counter */
-		i++;
-	}
-
-	/* Last sample read */
-	if ((r==0) && (i>0)) {
-		/* Zero padding */
-		for(j=0;j<BLOCK_LEN-i;j++) {
-			data[j+i][0]=0;
-			data[j+i][1]=0;
+	} else {
+		/* Still some unprocessed samples */
+		if (i>0) {
+			padding=BLOCK_LEN-i;
+			printf("Unprocessed samples: %d, zero padding with %d samples\n", i, padding);
+			for(j=0;j<padding;j++) {
+				/* Zero padding */
+				data[j+i][0]=0;
+				data[j+i][1]=0;
+			}
 		}
 	}
 
-	/* Data block read */
-	if ((i==BLOCK_LEN) || (r==0))
+	/* Data block ready or last block */
+	if ((i==BLOCK_LEN) || ( (i>0) && (r==0) ))
 	{
 		block_cnt++;
 		printf("Block read...\n");
