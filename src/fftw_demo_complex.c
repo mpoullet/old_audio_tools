@@ -34,7 +34,7 @@ fftw_complex *data, *fft_result, *ifft_result;
 fftw_plan plan_forward, plan_backward;
 
 data        = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*BLOCK_LEN);
-fft_result  = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*BLOCK_LEN*2);
+fft_result  = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*BLOCK_LEN);
 ifft_result = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*BLOCK_LEN);
 
 plan_forward = fftw_plan_dft_1d(BLOCK_LEN, data, fft_result, FFTW_FORWARD, FFTW_ESTIMATE);
