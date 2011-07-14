@@ -3,3 +3,4 @@
 gensin
 fftw_demo_complex
 fftw_demo_real
+fftw_demo_resample_one_block
