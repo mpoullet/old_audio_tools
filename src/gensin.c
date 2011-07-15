@@ -4,7 +4,7 @@
 #include <sndfile.h>
 #include <math.h>
 
-#define DEFAULT_FILE_NAME "out.pcm"
+#define DEFAULT_FILE_NAME "out.wav"
 
 int main(int argc, char *argv[])
 {
@@ -21,15 +21,18 @@ int main(int argc, char *argv[])
 	int duration=1;
 	int samplerate=44100;
 	int samples_count=0;
+	double sample_duration;
+	int verbose=0;
 
-	char *optstring="f:d:s:c:h";
+	char *optstring="f:d:s:c:hv";
 	struct option longopts[]={
-		{"frequency",     1, NULL, 'f'},
-		{"duration",      1, NULL, 'd'},
-		{"samplerate",    1, NULL, 's'},
-		{"samples-count", 1, NULL, 'c'},
-		{"help",          0, NULL, 'h'},
-		{NULL,            0, NULL,  0 }
+		{"frequency",     1, NULL,    'f'},
+		{"duration",      1, NULL,    'd'},
+		{"samplerate",    1, NULL,    's'},
+		{"samples-count", 1, NULL,    'c'},
+		{"verbose",       0, &verbose, 1 },
+		{"help",          0, NULL,    'h'},
+		{NULL,            0, NULL,     0 }
 	};
 
 	int longindex;
@@ -54,7 +57,7 @@ int main(int argc, char *argv[])
 			}
 			break;
 			case 'h':
-			fprintf(stdout, "Usage: %s --frequency[-f] [--duration[-d]|-samples-count[-c]] --samplerate[-s]\n", argv[0]);
+			fprintf(stdout, "Usage: %s --verbose --frequency[-f] [--duration[-d]|-samples-count[-c]] --samplerate[-s]\n", argv[0]);
 			return 0;
 		}
 	}
@@ -63,7 +66,7 @@ int main(int argc, char *argv[])
 		file_name=argv[optind];
 	}
 
-        infos.format=SF_FORMAT_RAW | SF_FORMAT_PCM_16;
+        infos.format=SF_FORMAT_WAV | SF_FORMAT_PCM_16;
         infos.channels=1;
         infos.samplerate=samplerate;
 
@@ -73,7 +76,7 @@ int main(int argc, char *argv[])
 		duration=1/infos.samplerate*samples_count;
 	}
 
-	fprintf(stdout, "Parameters: frequency:%dHz duration:%ds samplerate:%dHz samples-count:%d\n", frequency, duration, samplerate, samples_count);
+	fprintf(stdout, "Parameters: verbose:%s frequency:%dHz duration:%ds samplerate:%dHz samples-count:%d\n", (verbose == 0) ? "no":"yes", frequency, duration, samplerate, samples_count);
 	fprintf(stdout, "Output file: %s\n", file_name);
 
         samples=malloc(samples_count*sizeof(float));
@@ -81,6 +84,13 @@ int main(int argc, char *argv[])
         for(i=0;i<samples_count;i++) {
                 samples[i]=sin(2*M_PI*frequency*(float)(i)*1/infos.samplerate);
         }
+
+	sample_duration=(double)1./(double)infos.samplerate;
+	if (verbose==1) {
+		for(i=0;i<samples_count;i++) {
+			fprintf(stdout, "%lf\t%lf\n", sample_duration*i, samples[i] );
+		}
+	}
 
         sndfile = sf_open(file_name, SFM_WRITE, &infos);
         sf_write_float(sndfile, &samples[0], samples_count);
